@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  web:
+    image: baskervil/parking_api
+    # command: python parking/manage.py runserver 0.0.0.0:8000
+    command: sh -c "cd parking && gunicorn -b 0.0.0.0:8000 parking.wsgi:application"
+    expose:
+      - 8000
+    environment:
+       ParkingEnvironment: staging
+  
+  db:
+    image: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=developer
+      - POSTGRES_PASSWORD=admin12345
+      - POSTGRES_DB=parking
+    ports:
+      - 5432:5432
+
+  nginx:
+    image: baskervil/parking_nginx
+    depends_on:
+      - web
+    ports:
+      - 80:80
+
+volumes:
+  postgres_data:
+
+  
