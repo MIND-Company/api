@@ -3,13 +3,15 @@ version: '3.8'
 services:
   web:
     image: baskervil/parking_api
-    # command: python parking/manage.py runserver 0.0.0.0:8000
-    command: sh -c "cd parking && gunicorn -b 0.0.0.0:8000 parking.wsgi:application"
+    command: sh -c "python manage.py collectstatic --noinput && gunicorn -b 0.0.0.0:8000 parking.wsgi:application"
     expose:
       - 8000
     environment:
        ParkingEnvironment: staging
-  
+    volumes:
+      - ./parking:/parking
+      - static_data:/parking/static
+
   db:
     image: postgres
     volumes:
@@ -27,8 +29,11 @@ services:
       - web
     ports:
       - 80:80
+    volumes:
+      - static_data:/var/www/html/static
 
 volumes:
   postgres_data:
+  static_data:
 
   
