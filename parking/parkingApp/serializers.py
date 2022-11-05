@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from action_serializer import ModelActionSerializer
+from .auxiliary_serializers import AuxParkingSimpleSerializer, AuxParkSerializer
 from .models import Park, ParkingInfo, Car
 
 
@@ -15,7 +16,7 @@ class ParkSerializer(ModelActionSerializer):
 
     def cars_list(sekf, obj):
         infos = obj.parkinginfo_set.all()
-        cars = [ParkingInfoSerializer(info).data for info in infos]
+        cars = [AuxParkingSimpleSerializer(info).data for info in infos]
         return cars
 
     class Meta:
@@ -34,6 +35,9 @@ class CarSerializer(ModelActionSerializer):
 
 class ParkingInfoSerializer(ModelActionSerializer):
 
+    park = AuxParkSerializer(many=False, read_only=True)
+
     class Meta:
         model = ParkingInfo
-        fields = ['car', 'entry_time', 'checkout_time', 'calculated_price']
+        fields = ['car', 'entry_time', 'checkout_time',
+                  'calculated_price', 'park']
