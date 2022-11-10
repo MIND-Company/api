@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-3j$&4&44++sxzk5fkixi6y^28+zz11bq-)p5_e1x932i#!vq&d
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['localhost', '0.0.0.0', '127.0.0.0', '188.68.221.169']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'corsheaders',
+
     'parkingApp.apps.ParkingappConfig',
     'parkingAuth.apps.ParkingauthConfig',
 ]
@@ -50,6 +52,9 @@ AUTH_USER_MODEL = 'parkingAuth.User'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+
+    'corsheaders.middleware.CorsMiddleware',
+
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -141,6 +146,9 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
+
+# TODO: в проде здесь нужна более строгая настройка 
+CORS_ORIGIN_ALLOW_ALL = True
 
 
 SIMPLE_JWT = {
