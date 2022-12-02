@@ -89,3 +89,34 @@ GET /api/parks/{id}/
 ___
 ## Получение списка парковок (для пользователя)
 GET /api/parkings/
+___
+## Добавление новой записи о заезде на паркинг
+(сейчас может выполнить любой пользователь прошедший аутентификацию)
+POST /api/parkings/create
+
+__Request body__
+park_id: int
+car_number: string 
+
+__Response__
+201 Created
+400 Ошибка в переданных данных
+___
+## Создание новой парковки
+(сейчас может выполнить любой пользователь прошедший аутентификацию)
+(хозяином парковки устанавливается пользователь выполнивший запрос)
+POST /api/parks/create
+
+__Request body__
+description: string 
+place_count: int
+latitude: decimal (с точностью 6 знаков после запятой)
+longitude: decimal (с точностью 6 знаков после запятой)
+
+опционально 
+address: string
+web_address: string
+
+__Response__
+201 Created
+400 Ошибка в переданных данных
