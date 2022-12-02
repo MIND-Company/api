@@ -2,7 +2,7 @@ from action_serializer import ModelActionSerializer
 from .models import ParkingInfo, Park
 
 # TODO разобраться насколько грамотно использовать такие вспомогательные сериализаторы
-class AuxParkingSimpleSerializer(ModelActionSerializer):
+class AuxParkingSerializer(ModelActionSerializer):
 
     class Meta:
         model = ParkingInfo
