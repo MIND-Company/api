@@ -32,6 +32,25 @@ class ParkingInfoViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
+class ParkCreate(views.APIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if ('description' not in request.data or len(request.data['description']) < 1):
+            response = {
+                'description': 'This field is required and may not be blank'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        serializer = ParkSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        validated_data = serializer.validated_data
+        park = Park(owner=request.user, **validated_data)
+        park.save()
+        return Response(validated_data, status=status.HTTP_201_CREATED)
+
+
+
 class ParkingRecord(views.APIView):
 
     permission_classes = [permissions.IsAuthenticated]
