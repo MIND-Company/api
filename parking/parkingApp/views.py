@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, views, status
+from rest_framework.response import Response
 from .serializers import ParkSerializer, ParkingInfoSerializer
 from .models import Park, ParkingInfo, Car
 
@@ -29,3 +30,41 @@ class ParkingInfoViewSet(viewsets.ReadOnlyModelViewSet):
 
     serializer_class = ParkingInfoSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+class ParkingRecord(views.APIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        data = request.data
+        if ('park_id' not in data):
+            response = {'park_id': 'This field is required'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        if ('car_number' not in data):
+            response = {'car_number': 'This field is required'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        park = Park.objects.filter(pk=data["park_id"]).first()
+        car = Car.objects.filter(pk=data["car_number"]).first()
+
+        if (park is None):
+            response = {
+                'park_id': f'Паркинг с id={data["park_id"]} не существует'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        if (car is None):
+            response = {
+                'car_number': f'Машина с номером {data["car_number"]} не зарегистрирована в базе'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        infos = [i for i in ParkingInfo.objects.filter(
+            car=car, checkout_time=None)]
+        if (len(infos) > 0):
+            response = {
+                'car_number': f'Машина с номером {data["car_number"]} уже находится на парковке'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        info = ParkingInfo(park=park, car=car)
+        info.save()
+        serializer = ParkingInfoSerializer(info)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ParkViewSet, ParkingInfoViewSet
+from .views import ParkViewSet, ParkingInfoViewSet, ParkingRecord
 
 
 router = DefaultRouter()
@@ -9,4 +9,5 @@ router.register('parkings', ParkingInfoViewSet, basename="parking-infos")
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('parkings/create', ParkingRecord.as_view()),
 ]
