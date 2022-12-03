@@ -13,4 +13,4 @@ class AuxParkSerializer(ModelActionSerializer):
 
     class Meta:
         model = Park
-        fields = ['id', 'description', 'webAddress']
+        fields = ['id', 'description', 'web_address']
