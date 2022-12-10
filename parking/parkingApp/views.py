@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions, views, status
 from rest_framework.response import Response
-from .serializers import ParkSerializer, ParkingInfoSerializer
+from .serializers import ParkSerializer, ParkingInfoSerializer, CarSerializer
 from .models import Park, ParkingInfo, Car
 
 
@@ -29,6 +29,22 @@ class ParkingInfoViewSet(viewsets.ReadOnlyModelViewSet):
         return sorted(infos, key=lambda x: x.entry_time, reverse=True)
 
     serializer_class = ParkingInfoSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class CarViewSet(viewsets.ModelViewSet):
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.id:
+            return []
+        return Car.objects.filter(owner=user)
+    
+    def perform_create(self, serializer):
+        
+        return serializer.save(owner=self.request.user)
+
+    serializer_class = CarSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
