@@ -39,9 +39,8 @@ class CarViewSet(viewsets.ModelViewSet):
         if not user.id:
             return []
         return Car.objects.filter(owner=user)
-    
+
     def perform_create(self, serializer):
-        
         return serializer.save(owner=self.request.user)
 
     serializer_class = CarSerializer

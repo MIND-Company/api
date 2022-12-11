@@ -116,6 +116,22 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'info.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'propagate': True,
+        },
+    }
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
