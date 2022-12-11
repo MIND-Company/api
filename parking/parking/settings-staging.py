@@ -119,16 +119,25 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'django.server': {
+            'format': '[{server_time}] {message}',
+            'style': '{',
+        }
+    },
     'handlers': {
-        'file': {
+        'django.server': {
             'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'info.log',
+            'level': 'INFO',
+            'filename': BASE_DIR / 'server_info.log',
+            'formatter': 'django.server',
         },
     },
     'loggers': {
-        'django': {
-            'handlers': ['file'],
-            'propagate': True,
+        'django.server': {
+            'handlers': ['django.server'],
+            'level': 'INFO',
+            'propagate': False,
         },
     }
 }
