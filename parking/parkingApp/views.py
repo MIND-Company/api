@@ -1,8 +1,10 @@
-from django.shortcuts import render
 from rest_framework import viewsets, permissions, views, status
 from rest_framework.response import Response
 from .serializers import ParkSerializer, ParkingInfoSerializer, CarSerializer
 from .models import Park, ParkingInfo, Car
+from datetime import datetime
+import pytz
+from timezonefinder import TimezoneFinder
 
 
 class ParkViewSet(viewsets.ReadOnlyModelViewSet):
@@ -26,7 +28,7 @@ class ParkingInfoViewSet(viewsets.ReadOnlyModelViewSet):
         user_cars = Car.objects.filter(owner=user)
         print(user_cars)
         infos = [i for i in ParkingInfo.objects.filter(car__in=user_cars)]
-        return sorted(infos, key=lambda x: x.entry_time, reverse=True)
+        return sorted(infos, key=lambda x: x.entry_time_utc, reverse=True)
 
     serializer_class = ParkingInfoSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -65,7 +67,6 @@ class ParkCreate(views.APIView):
         return Response(validated_data, status=status.HTTP_201_CREATED)
 
 
-
 class ParkingRecord(views.APIView):
 
     permission_classes = [permissions.IsAuthenticated]
@@ -92,13 +93,17 @@ class ParkingRecord(views.APIView):
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         infos = [i for i in ParkingInfo.objects.filter(
-            car=car, checkout_time=None)]
+            car=car, checkout_time_utc=None)]
         if (len(infos) > 0):
             response = {
                 'car_number': f'Машина с номером {data["car_number"]} уже находится на парковке'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-        info = ParkingInfo(park=park, car=car)
+        tf = TimezoneFinder()
+        timezone = tf.timezone_at(lng=park.longitude, lat=park.latitude)
+        entry_time = datetime.now(pytz.timezone('UTC'))
+
+        info = ParkingInfo(park=park, car=car, entry_time_utc=entry_time, timezone=timezone)
         info.save()
         serializer = ParkingInfoSerializer(info)
         return Response(serializer.data, status=status.HTTP_201_CREATED)

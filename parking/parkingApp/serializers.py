@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from action_serializer import ModelActionSerializer
-from .auxiliary_serializers import AuxParkingSerializer, AuxParkSerializer
+from .auxiliary_serializers import AuxParkingSerializer, AuxParkSerializer, AuxDateTimeSerializer
 from .models import Park, ParkingInfo, Car
+import pytz
+from . import functions
 
 
 class ParkSerializer(ModelActionSerializer):
@@ -14,7 +16,7 @@ class ParkSerializer(ModelActionSerializer):
         infos = obj.parkinginfo_set.all()
         return sum(1 for info in infos if not info.checkout_time)
 
-    def cars_list(sekf, obj):
+    def cars_list(self, obj):
         infos = obj.parkinginfo_set.all()
         cars = [AuxParkingSerializer(info).data for info in infos]
         return cars
@@ -37,8 +39,29 @@ class CarSerializer(ModelActionSerializer):
 class ParkingInfoSerializer(ModelActionSerializer):
 
     park = AuxParkSerializer(many=False, read_only=True)
+    entry_time_utc = AuxDateTimeSerializer(many = False, read_only = True)
+    entry_time = serializers.SerializerMethodField('get_local_entry_time')
+    checkout_time = serializers.SerializerMethodField('get_local_checkout_time')
+    current_price = serializers.SerializerMethodField('calculate_price')
+
+
+    def get_local_entry_time(self, obj):
+        timezone = pytz.timezone(obj.timezone)
+        time = obj.entry_time_utc.astimezone(timezone)
+        return time.strftime('%d.%m.%Y %H:%M:%S')
+
+    def get_local_checkout_time(self, obj):
+        if not obj.checkout_time_utc:
+            return None
+        timezone = pytz.timezone(obj.timezone)
+        time = obj.checkout_time_utc.astimezone(timezone)
+        return time.strftime('%d.%m.%Y %H:%M:%S')
+    
+    def calculate_price(self, obj):
+        return str(functions.calculate_price(obj))
 
     class Meta:
         model = ParkingInfo
-        fields = ['car', 'entry_time', 'checkout_time',
-                  'calculated_price', 'park']
+        fields = ['car', 'entry_time_utc', 'checkout_time_utc', 'entry_time', 'checkout_time',
+                  'calculated_price', 'current_price', 'park']
+
