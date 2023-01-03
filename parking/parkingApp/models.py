@@ -94,4 +94,6 @@ class Price(models.Model):
 
 
     class Meta:
-        unique_together = (('id', 'day_of_week'),)
+        constraints = [
+        models.UniqueConstraint(fields=['park', 'day_of_week'], name="unique week day")
+    ]
