@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from action_serializer import ModelActionSerializer
-from .auxiliary_serializers import AuxParkingSerializer, AuxParkSerializer, AuxDateTimeSerializer
+from .auxiliary_serializers import AuxParkingSerializer, AuxParkSerializer, AuxDateTimeSerializer, AuxPriceSerializer
 from .models import Park, ParkingInfo, Car
 import pytz
 from . import functions
@@ -10,6 +10,7 @@ class ParkSerializer(ModelActionSerializer):
 
     taken = serializers.SerializerMethodField("taken_place_count")
     cars = serializers.SerializerMethodField("cars_list")
+    price_list = serializers.SerializerMethodField("get_price_list")
 
     # TODO подумать над оптимизацией, сейчас 2 вычисляемых поля перебирают список info 2 раза
     def taken_place_count(self, obj):
@@ -20,13 +21,17 @@ class ParkSerializer(ModelActionSerializer):
         infos = obj.parkinginfo_set.all()
         cars = [AuxParkingSerializer(info).data for info in infos]
         return cars
+    
+    def get_price_list(self, obj):
+        prices = obj.price_set.all()
+        return [AuxPriceSerializer(price).data for price in prices]
 
     class Meta:
         model = Park
         fields = ['description', 'place_count', 'address',
-                  'web_address', 'taken', 'cars', 'id', 'latitude', 'longitude']
-        action_fields = {"list": {"fields": ['id', 'description', 'address', 'latitude', 'longitude']}, 
-        "post": {"fields": ['description', 'latitude', 'longitude', 'owner']}}
+                  'web_address', 'taken', 'cars', 'id', 'latitude', 'longitude', 'price_list']
+        action_fields = {"list": {"fields": ['id', 'description', 'address', 'latitude', 'longitude', 'price_list']}, 
+        "post": {"fields": ['description', 'latitude', 'longitude', 'price_list', 'owner']}}
 
 
 class CarSerializer(ModelActionSerializer):
