@@ -1,4 +1,4 @@
-from .models import ParkingInfo, Price, Park, DayOfWeek
+from .models import ParkingInfo, Price, DayOfWeek
 from datetime import datetime, timedelta, time
 import pytz
 import math
@@ -41,7 +41,7 @@ def calculate_price(parkingInfo: ParkingInfo):
 
 def calculate(time: timedelta, price: Price):
 
-    minutes = math.ceil(time.seconds // 60)
+    minutes = math.ceil(time.total_seconds() // 60)
     if price.free_time_in_minutes:
         minutes = max(minutes - price.free_time_in_minutes, 0)
 
@@ -75,7 +75,7 @@ def split_by_day(begin_time: datetime, end_time: datetime, timezone) -> dict:
     date = begin_date + timedelta(days=1)
     while delta > timedelta(hours=24):
         result[date] = timedelta(hours=24)
-        date += time(days=1)
+        date += timedelta(days=1)
         delta -= timedelta(hours=24)
 
     result[date] = delta

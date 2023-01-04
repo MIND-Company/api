@@ -1,10 +1,11 @@
 from rest_framework import viewsets, permissions, views, status
 from rest_framework.response import Response
-from .serializers import ParkSerializer, ParkingInfoSerializer, CarSerializer
-from .models import Park, ParkingInfo, Car
+from .serializers import ParkSerializer, ParkingInfoSerializer, CarSerializer, PriceSerializer
+from .models import Park, ParkingInfo, Car, Price
 from datetime import datetime
 import pytz
 from timezonefinder import TimezoneFinder
+from .castom_viewsets import NonReadableViewSet
 
 
 class ParkViewSet(viewsets.ReadOnlyModelViewSet):
@@ -26,7 +27,7 @@ class ParkingInfoViewSet(viewsets.ReadOnlyModelViewSet):
         if not user.id:
             return []
         user_cars = Car.objects.filter(owner=user)
-        print(user_cars)
+
         infos = [i for i in ParkingInfo.objects.filter(car__in=user_cars)]
         return sorted(infos, key=lambda x: x.entry_time_utc, reverse=True)
 
@@ -46,6 +47,19 @@ class CarViewSet(viewsets.ModelViewSet):
         return serializer.save(owner=self.request.user)
 
     serializer_class = CarSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class PriceViewSet(NonReadableViewSet):
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.id:
+            return []
+        user_parks = Park.objects.filter(owner=user)
+
+        return Price.objects.filter(park__in=user_parks)
+   
+    serializer_class = PriceSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 

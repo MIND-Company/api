@@ -1,8 +1,7 @@
 from django.db import models
 from parkingAuth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator, MinLengthValidator
-from datetime import datetime
-import pytz
+
 
 class DayOfWeek:
 
@@ -19,7 +18,7 @@ class DayOfWeek:
 
     DAY_NUMBER_TO_DAY = {0: MONDAY, 1: THUESDAY, 2: WEDNESDAY,
                          3: THURSDAY, 4: FRIDAY, 5: SATURDAY, 6: SUNDAY}
-    
+
     def is_weekend(day):
         return day is "Sun" or day is "Sat"
 
@@ -81,19 +80,19 @@ class Price(models.Model):
         (DayOfWeek.SUNDAY, "Sunday")
     ]
     day_of_week = models.CharField(
-        max_length=3, choices=DAY_OF_WEEK_CHOICES, default=DayOfWeek.ALL)
+        max_length=3, choices=DAY_OF_WEEK_CHOICES)
     price_per_hour = models.DecimalField(
         max_digits=7, decimal_places=2, validators=[MinValueValidator(0)])
     max_price_per_day = models.DecimalField(max_digits=9, decimal_places=2, validators=[
                                             MinValueValidator(0)], null=True, blank=True)
-    free_time_in_minutes = models.IntegerField(default=0)
+    free_time_in_minutes = models.IntegerField()
     park = models.ForeignKey(Park, on_delete=models.CASCADE)
 
     def __str__(self):
         return f'{self.park} - {self.day_of_week} : {self.price_per_hour}'
 
-
     class Meta:
         constraints = [
-        models.UniqueConstraint(fields=['park', 'day_of_week'], name="unique week day")
-    ]
+            models.UniqueConstraint(
+                fields=['park', 'day_of_week'], name="unique week day")
+        ]

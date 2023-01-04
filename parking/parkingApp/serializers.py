@@ -1,7 +1,7 @@
-from rest_framework import serializers
+from rest_framework import serializers, validators
 from action_serializer import ModelActionSerializer
-from .auxiliary_serializers import AuxParkingSerializer, AuxParkSerializer, AuxDateTimeSerializer, AuxPriceSerializer
-from .models import Park, ParkingInfo, Car
+from .auxiliary_serializers import AuxParkingSerializer, AuxParkSerializer, AuxDateTimeSerializer
+from .models import Park, ParkingInfo, Car, Price
 import pytz
 from . import functions
 
@@ -21,17 +21,41 @@ class ParkSerializer(ModelActionSerializer):
         infos = obj.parkinginfo_set.all()
         cars = [AuxParkingSerializer(info).data for info in infos]
         return cars
-    
+
     def get_price_list(self, obj):
         prices = obj.price_set.all()
-        return [AuxPriceSerializer(price).data for price in prices]
+        return [PriceSerializer(price).data for price in prices]
 
     class Meta:
         model = Park
         fields = ['description', 'place_count', 'address',
                   'web_address', 'taken', 'cars', 'id', 'latitude', 'longitude', 'price_list']
-        action_fields = {"list": {"fields": ['id', 'description', 'address', 'latitude', 'longitude', 'price_list']}, 
-        "post": {"fields": ['description', 'latitude', 'longitude', 'price_list', 'owner']}}
+        action_fields = {"list": {"fields": ['id', 'description', 'address', 'latitude', 'longitude', 'price_list']},
+                         "post": {"fields": ['description', 'latitude', 'longitude', 'price_list', 'owner']}}
+
+
+class PriceSerializer(ModelActionSerializer):
+
+    park_id = serializers.IntegerField()
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    owner = serializers.IntegerField(required=True)
+
+    def validate_park_id(self, value):
+        park = Park.objects.get(pk=value)
+        if park.owner != self.context['request'].user:
+            raise serializers.ValidationError(
+                f"park with park_id={value} not found")
+        return value
+
+    class Meta:
+        model = Price
+        fields = ['day_of_week', 'price_per_hour',
+                  'max_price_per_day', 'free_time_in_minutes', 'id', 'park_id']
+
+        validators = [validators.UniqueTogetherValidator(
+            queryset=Price.objects.all(),
+            fields=['park_id', 'day_of_week']
+        )]
 
 
 class CarSerializer(ModelActionSerializer):
@@ -44,11 +68,11 @@ class CarSerializer(ModelActionSerializer):
 class ParkingInfoSerializer(ModelActionSerializer):
 
     park = AuxParkSerializer(many=False, read_only=True)
-    entry_time_utc = AuxDateTimeSerializer(many = False, read_only = True)
+    entry_time_utc = AuxDateTimeSerializer(many=False, read_only=True)
     entry_time = serializers.SerializerMethodField('get_local_entry_time')
-    checkout_time = serializers.SerializerMethodField('get_local_checkout_time')
+    checkout_time = serializers.SerializerMethodField(
+        'get_local_checkout_time')
     current_price = serializers.SerializerMethodField('calculate_price')
-
 
     def get_local_entry_time(self, obj):
         timezone = pytz.timezone(obj.timezone)
@@ -61,7 +85,7 @@ class ParkingInfoSerializer(ModelActionSerializer):
         timezone = pytz.timezone(obj.timezone)
         time = obj.checkout_time_utc.astimezone(timezone)
         return time.strftime('%d.%m.%Y %H:%M:%S')
-    
+
     def calculate_price(self, obj):
         return str(functions.calculate_price(obj))
 
@@ -69,4 +93,3 @@ class ParkingInfoSerializer(ModelActionSerializer):
         model = ParkingInfo
         fields = ['car', 'entry_time_utc', 'checkout_time_utc', 'entry_time', 'checkout_time',
                   'calculated_price', 'current_price', 'park']
-
