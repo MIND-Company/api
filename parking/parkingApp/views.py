@@ -1,11 +1,8 @@
 from rest_framework import viewsets, permissions, views, status
 from rest_framework.response import Response
-from .serializers import ParkSerializer, ParkingInfoSerializer, CarSerializer, PriceSerializer
+from .serializers import ParkSerializer, ParkingInfoSerializer, CarSerializer, PriceSerializer, ParkingInfoCreateSerializer
 from .models import Park, ParkingInfo, Car, Price
-from datetime import datetime
-import pytz
-from timezonefinder import TimezoneFinder
-from .castom_viewsets import NonReadableViewSet
+from .castom_viewsets import NonReadableViewSet, CreateOnlyViewSet
 
 
 class ParkViewSet(viewsets.ReadOnlyModelViewSet):
@@ -81,43 +78,8 @@ class ParkCreate(views.APIView):
         return Response(validated_data, status=status.HTTP_201_CREATED)
 
 
-class ParkingRecord(views.APIView):
+class ParkingRecord(CreateOnlyViewSet):
 
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ParkingInfoCreateSerializer
 
-    def post(self, request):
-        data = request.data
-        if ('park_id' not in data):
-            response = {'park_id': 'This field is required'}
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
-        if ('car_number' not in data):
-            response = {'car_number': 'This field is required'}
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
-        park = Park.objects.filter(pk=data["park_id"]).first()
-        car = Car.objects.filter(pk=data["car_number"]).first()
-
-        if (park is None):
-            response = {
-                'park_id': f'Паркинг с id={data["park_id"]} не существует'}
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
-        if (car is None):
-            response = {
-                'car_number': f'Машина с номером {data["car_number"]} не зарегистрирована в базе'}
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
-        infos = [i for i in ParkingInfo.objects.filter(
-            car=car, checkout_time_utc=None)]
-        if (len(infos) > 0):
-            response = {
-                'car_number': f'Машина с номером {data["car_number"]} уже находится на парковке'}
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
-        tf = TimezoneFinder()
-        timezone = tf.timezone_at(lng=park.longitude, lat=park.latitude)
-        entry_time = datetime.now(pytz.timezone('UTC'))
-
-        info = ParkingInfo(park=park, car=car, entry_time_utc=entry_time, timezone=timezone)
-        info.save()
-        serializer = ParkingInfoSerializer(info)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)

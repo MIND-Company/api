@@ -58,7 +58,7 @@ class ParkingInfo(models.Model):
     timezone = models.CharField(max_length=100)
     calculated_price = models.DecimalField(
         max_digits=9, decimal_places=2, validators=[MinValueValidator(0)], null=True, blank=True)
-    park = models.ForeignKey(Park, on_delete=models.SET_NULL, null=True)
+    park = models.ForeignKey(Park, on_delete=models.SET(0))
     car = models.ForeignKey(Car, on_delete=models.CASCADE)
 
     def __str__(self):

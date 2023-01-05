@@ -4,6 +4,10 @@ from .auxiliary_serializers import AuxParkingSerializer, AuxParkSerializer, AuxD
 from .models import Park, ParkingInfo, Car, Price
 import pytz
 from . import functions
+from datetime import datetime
+import pytz
+from timezonefinder import TimezoneFinder
+
 
 
 class ParkSerializer(ModelActionSerializer):
@@ -93,3 +97,30 @@ class ParkingInfoSerializer(ModelActionSerializer):
         model = ParkingInfo
         fields = ['car', 'entry_time_utc', 'checkout_time_utc', 'entry_time', 'checkout_time',
                   'calculated_price', 'current_price', 'park']
+
+class ParkingInfoCreateSerializer(ModelActionSerializer):
+
+    entry_time_local = serializers.SerializerMethodField('get_local_entry_time')
+
+    def get_local_entry_time(self, obj):
+        timezone = pytz.timezone(obj.timezone)
+        time = obj.entry_time_utc.astimezone(timezone)
+        return time.strftime('%d.%m.%Y %H:%M:%S')
+
+    def validate_car(self, car):
+        infos = ParkingInfo.objects.filter(car=car, checkout_time_utc=None)
+        if len(infos) > 0:
+            raise serializers.ValidationError(f'Машина с номером {car.number} уже находится на парковке')
+        return car
+
+    def save(self, **kwargs):
+        kwargs['entry_time_utc'] = datetime.now(pytz.timezone('UTC'))
+        tf = TimezoneFinder()
+        park = self.validated_data['park']
+        timezone = tf.timezone_at(lng=park.longitude, lat=park.latitude)
+        kwargs['timezone'] = timezone
+        return super().save(**kwargs)
+
+    class Meta:
+        model = ParkingInfo
+        fields = ['car', 'park', 'entry_time_local']

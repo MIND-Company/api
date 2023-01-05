@@ -6,3 +6,6 @@ class NonReadableViewSet(mixins.CreateModelMixin,
                          mixins.DestroyModelMixin,
                          viewsets.GenericViewSet):
     pass
+
+class CreateOnlyViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    pass
