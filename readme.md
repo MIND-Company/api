@@ -4,11 +4,6 @@
 POST /register
 
 __Request body__
-~~Login: string~~
-~~Логин пользователя, должен быть уникальным.~~
-
-~~Email: string~~
-~~Адрес электронной почты. На него высылается подтверждение регистрации. Должен быть уникальным.~~
 
 phone: string
 Должен быть уникальным. Формат: строго 12 символов +7XXXXXXXXXX, только цифры и знак + в начале строки.
@@ -21,8 +16,7 @@ password_retype: string
 
 __Response__
 200 Успех
-~~UserId: string ~~
-~~Идентификатор созданного пользователя~~
+
 phone: string
 Номер телефона (идентификатор) созданного пользователя
 
@@ -36,15 +30,13 @@ _____
 POST /login
 
 __Request body__
-~~Login: string~~
-~~Обязательно отправляется либо логин, либо email~~
-~~Email: string~~
+
 Phone: string
 Password: string 
 
 __Response__
 200 Успех
-~~UserId: string ~~
+
 Access: string
 Refresh: string
 
@@ -83,20 +75,38 @@ ____
 ___
 ## Получение списка паркингов (для владельца)
 GET /api/parks/
+
+:boom:__появилась информация о ценах__
 ___
 ## Получение конкретного паркинга (для владельца)
 GET /api/parks/{id}/ 
+
+:boom:__появилась информация о ценах__
 ___
 ## Получение списка парковок (для пользователя)
 GET /api/parkings/ (записи о парковках сортируются по entry_time от самой новой до самой старой)
+
+:boom: __появился расчет цены, :bangbang: время теперь локальное (по местоположению паркинга) и UTC__
+![изображение](https://user-images.githubusercontent.com/82332119/210776663-26d520ba-6cd5-4e0b-9ce8-72bd7d35cf84.png)
+
 ___
-## Добавление новой записи о заезде на паркинг
-(сейчас может выполнить любой пользователь прошедший аутентификацию)
-POST /api/parkings/create
+## :bangbang: Добавление новой записи о заезде на паркинг
+POST ~~/api/parkings/create~~ :bangbang: api/entry-register/
 
 __Request body__
-park_id: int
-car_number: string 
+:bangbang: ~~park_id~~ park: int
+:bangbang: ~~car_number~~ car: string 
+
+__Response__
+201 Created
+400 Ошибка в переданных данных
+___
+## :boom: Добавление новой записи о выезде с паркинга
+POST api/checkout-register/
+
+__Request body__
+park: int
+car: string 
 
 __Response__
 201 Created
@@ -127,6 +137,31 @@ GET /api/cars - отдает список машин пользователя
 POST /api/cars - создает новую машину для пользователя
 
 PUT, PATCH, DELETE /api/cars/<номер машины (он же PK)> - редактирует, удалеят машину пользователя с переданным PK
+____
+## :boom: Задать цену для паркинга
+
+список возможных значений для day_of_week:
+- ALL = "All"
+- WEEKEND = "Wkd"
+- MONDAY = "Mon"
+- THUESDAY = "Tue"
+- WEDNESDAY = "Wed"
+- THURSDAY = "Thu"
+- FRIDAY = "Fri"
+- SATURDAY = "Sat"
+- SUNDAY = "Sun"
+
+сначала выбирается цена по дню недели -> если такой нет -> WEEKEND (если выходной день) -> ALL (если нет не выбрано на предыдущих шагах)
+
+POST /api/price - создает новую цену
+
+PUT, PATCH, DELETE /api/price/<PK> - редактируем, удаляем цену
+____
+## :boom: Профиль пользователя
+
+get profile/ - отдает профиль пользователя
+
+PATCH profile/ - редактирует профиль
 ____
 ## Пагинация
 На ендпоинтах отдающих коллекции подключена пагинация в стиле limit-offset
