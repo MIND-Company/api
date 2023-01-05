@@ -3,6 +3,9 @@ from rest_framework.response import Response
 from .serializers import ParkSerializer, ParkingInfoSerializer, CarSerializer, PriceSerializer, ParkingInfoCreateSerializer
 from .models import Park, ParkingInfo, Car, Price
 from .castom_viewsets import NonReadableViewSet, CreateOnlyViewSet
+from datetime import datetime
+import pytz
+from . import functions
 
 
 class ParkViewSet(viewsets.ReadOnlyModelViewSet):
@@ -46,6 +49,7 @@ class CarViewSet(viewsets.ModelViewSet):
     serializer_class = CarSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
 class PriceViewSet(NonReadableViewSet):
 
     def get_queryset(self):
@@ -55,7 +59,7 @@ class PriceViewSet(NonReadableViewSet):
         user_parks = Park.objects.filter(owner=user)
 
         return Price.objects.filter(park__in=user_parks)
-   
+
     serializer_class = PriceSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -78,8 +82,37 @@ class ParkCreate(views.APIView):
         return Response(validated_data, status=status.HTTP_201_CREATED)
 
 
-class ParkingRecord(CreateOnlyViewSet):
+class ParkingRecordViewSet(CreateOnlyViewSet):
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ParkingInfoCreateSerializer
 
+
+class ParkingRecordCheckout(views.APIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        errors = {}
+        if ('park' not in request.data):
+            errors['description'] = 'This field is required'
+        if ('car' not in request.data):
+            errors['car'] = 'This field is required'
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        car = request.data['car']
+        park = request.data['park']
+        parking_record = ParkingInfo.objects.filter(
+            park_id=park, car_id=car, checkout_time_utc=None).first()
+        if not parking_record:
+            return Response({'errors': f'entry parking record for car:{car} park:{park} not found'}, status=status.HTTP_400_BAD_REQUEST)
+
+        parking_record.checkout_time_utc = datetime.now(pytz.timezone('UTC'))
+        parking_record.calculated_price = functions.calculate_price(
+            parking_record)
+
+        parking_record.save()
+        json = ParkingInfoCreateSerializer(parking_record)
+
+        return Response(json.data, status=status.HTTP_200_OK)

@@ -72,40 +72,46 @@ class CarSerializer(ModelActionSerializer):
 class ParkingInfoSerializer(ModelActionSerializer):
 
     park = AuxParkSerializer(many=False, read_only=True)
-    entry_time_utc = AuxDateTimeSerializer(many=False, read_only=True)
-    entry_time = serializers.SerializerMethodField('get_local_entry_time')
-    checkout_time = serializers.SerializerMethodField(
-        'get_local_checkout_time')
+    entry_time_local = serializers.SerializerMethodField('get_local_entry_time')
+    checkout_time_local = serializers.SerializerMethodField('get_local_checkout_time')
     current_price = serializers.SerializerMethodField('calculate_price')
 
     def get_local_entry_time(self, obj):
         timezone = pytz.timezone(obj.timezone)
         time = obj.entry_time_utc.astimezone(timezone)
-        return time.strftime('%d.%m.%Y %H:%M:%S')
+        return time
 
     def get_local_checkout_time(self, obj):
         if not obj.checkout_time_utc:
             return None
         timezone = pytz.timezone(obj.timezone)
         time = obj.checkout_time_utc.astimezone(timezone)
-        return time.strftime('%d.%m.%Y %H:%M:%S')
+        return time
 
     def calculate_price(self, obj):
         return str(functions.calculate_price(obj))
 
     class Meta:
         model = ParkingInfo
-        fields = ['car', 'entry_time_utc', 'checkout_time_utc', 'entry_time', 'checkout_time',
+        fields = ['car', 'entry_time_utc', 'entry_time_local', 'checkout_time_utc', 'checkout_time_local',
                   'calculated_price', 'current_price', 'park']
 
 class ParkingInfoCreateSerializer(ModelActionSerializer):
 
     entry_time_local = serializers.SerializerMethodField('get_local_entry_time')
+    checkout_time_local = serializers.SerializerMethodField('get_local_checkout_time')
 
     def get_local_entry_time(self, obj):
         timezone = pytz.timezone(obj.timezone)
         time = obj.entry_time_utc.astimezone(timezone)
-        return time.strftime('%d.%m.%Y %H:%M:%S')
+        return time
+
+    def get_local_checkout_time(self, obj):
+        if not obj.checkout_time_utc:
+            return None
+        timezone = pytz.timezone(obj.timezone)
+        time = obj.checkout_time_utc.astimezone(timezone)
+        return time
 
     def validate_car(self, car):
         infos = ParkingInfo.objects.filter(car=car, checkout_time_utc=None)
@@ -123,4 +129,5 @@ class ParkingInfoCreateSerializer(ModelActionSerializer):
 
     class Meta:
         model = ParkingInfo
-        fields = ['car', 'park', 'entry_time_local']
+        fields = ['car', 'park', 'entry_time_local', 'entry_time_utc', 'checkout_time_local', 'checkout_time_utc']
+        read_only_fields = ['entry_time_utc']
