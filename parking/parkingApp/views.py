@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions, views, status
 from rest_framework.response import Response
-from .serializers import ParkSerializer, ParkingInfoSerializer, CarSerializer, PriceSerializer, ParkingInfoCreateSerializer
+from .serializers import OwnerParkSerializer, ParkingInfoSerializer, CarSerializer, PriceSerializer, ParkingInfoCreateSerializer, ParkSerializer
 from .models import Park, ParkingInfo, Car, Price
 from .castom_viewsets import NonReadableViewSet, CreateOnlyViewSet
 from datetime import datetime
@@ -8,7 +8,7 @@ import pytz
 from . import functions
 
 
-class ParkViewSet(viewsets.ReadOnlyModelViewSet):
+class OwnerParkViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
@@ -16,8 +16,14 @@ class ParkViewSet(viewsets.ReadOnlyModelViewSet):
             return []
         return Park.objects.filter(owner=user)
 
+    serializer_class = OwnerParkSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class ParkViewSet(viewsets.ReadOnlyModelViewSet):
+
     serializer_class = ParkSerializer
     permission_classes = [permissions.IsAuthenticated]
+    queryset = Park.objects.all()
 
 
 class ParkingInfoViewSet(viewsets.ReadOnlyModelViewSet):
@@ -73,7 +79,7 @@ class ParkCreate(views.APIView):
             response = {
                 'description': 'This field is required and may not be blank'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
-        serializer = ParkSerializer(data=request.data)
+        serializer = OwnerParkSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         validated_data = serializer.validated_data

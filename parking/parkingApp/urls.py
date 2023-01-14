@@ -1,11 +1,13 @@
-from django.urls import path, include
+from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
-from .views import ParkViewSet, ParkingInfoViewSet, ParkingRecordViewSet, ParkCreate, CarViewSet, PriceViewSet, ParkingRecordCheckout
+from .views import OwnerParkViewSet, ParkViewSet, ParkingInfoViewSet, ParkingRecordViewSet, ParkCreate, CarViewSet, PriceViewSet, ParkingRecordCheckout
+from django.views.generic.base import RedirectView
 
 
 router = DefaultRouter()
 router.register('entry-register', ParkingRecordViewSet, basename="parking-create")
-router.register('parks', ParkViewSet, basename="parks")
+router.register('all-parks', ParkViewSet, basename="all-parks")
+router.register('owner-parks', OwnerParkViewSet, basename="owner-parks")
 router.register('parkings', ParkingInfoViewSet, basename="parking-infos")
 router.register('cars', CarViewSet, basename="cars")
 router.register('price', PriceViewSet, basename="price")

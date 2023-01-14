@@ -10,7 +10,7 @@ from timezonefinder import TimezoneFinder
 
 
 
-class ParkSerializer(ModelActionSerializer):
+class OwnerParkSerializer(ModelActionSerializer):
 
     taken = serializers.SerializerMethodField("taken_place_count")
     cars = serializers.SerializerMethodField("cars_list")
@@ -19,7 +19,7 @@ class ParkSerializer(ModelActionSerializer):
     # TODO подумать над оптимизацией, сейчас 2 вычисляемых поля перебирают список info 2 раза
     def taken_place_count(self, obj):
         infos = obj.parkinginfo_set.all()
-        return sum(1 for info in infos if not info.checkout_time)
+        return sum(1 for info in infos if not info.checkout_time_utc)
 
     def cars_list(self, obj):
         infos = obj.parkinginfo_set.all()
@@ -34,8 +34,27 @@ class ParkSerializer(ModelActionSerializer):
         model = Park
         fields = ['description', 'place_count', 'address',
                   'web_address', 'taken', 'cars', 'id', 'latitude', 'longitude', 'price_list']
-        action_fields = {"list": {"fields": ['id', 'description', 'address', 'latitude', 'longitude', 'price_list']},
-                         "post": {"fields": ['description', 'latitude', 'longitude', 'price_list', 'owner']}}
+        action_fields = {"list": {"fields": ['id', 'description', 'address', 'latitude', 'longitude', 'price_list']}}
+
+
+class ParkSerializer(ModelActionSerializer):
+
+    taken = serializers.SerializerMethodField("taken_place_count")
+    price_list = serializers.SerializerMethodField("get_price_list")
+
+    # TODO подумать над оптимизацией, сейчас 2 вычисляемых поля перебирают список info 2 раза
+    def taken_place_count(self, obj):
+        infos = obj.parkinginfo_set.all()
+        return sum(1 for info in infos if not info.checkout_time_utc)
+
+    def get_price_list(self, obj):
+        prices = obj.price_set.all()
+        return [PriceSerializer(price).data for price in prices]
+
+    class Meta:
+        model = Park
+        fields = ['description', 'place_count', 'address',
+                  'web_address', 'taken', 'id', 'latitude', 'longitude', 'price_list']
 
 
 class PriceSerializer(ModelActionSerializer):
