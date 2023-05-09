@@ -1,11 +1,12 @@
 from rest_framework import viewsets, permissions, views, status
 from rest_framework.response import Response
-from .serializers import OwnerParkSerializer, ParkingInfoSerializer, CarSerializer, PriceSerializer, ParkingInfoCreateSerializer, ParkSerializer
-from .models import Park, ParkingInfo, Car, Price
+from .serializers import OwnerParkSerializer, ParkingInfoSerializer, CarSerializer, PriceSerializer, ParkingInfoCreateSerializer, ParkSerializer, ParkingInfoCheckoutSerializer
+from .models import Park, ParkingInfo, Car, Price, ConfirmationCode
 from .castom_viewsets import NonReadableViewSet, CreateOnlyViewSet
 from datetime import datetime
 import pytz
 from . import functions
+import uuid
 
 
 class OwnerParkViewSet(viewsets.ReadOnlyModelViewSet):
@@ -41,7 +42,7 @@ class ParkingInfoViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
-class CarViewSet(viewsets.ModelViewSet):
+class CarViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
@@ -49,12 +50,44 @@ class CarViewSet(viewsets.ModelViewSet):
             return []
         return Car.objects.filter(owner=user)
 
-    def perform_create(self, serializer):
-        return serializer.save(owner=self.request.user)
-
     serializer_class = CarSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+class CarCreateView(views.APIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        
+        serializer = CarSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        if ('confirmation_code' not in request.data):
+            response = {'confirmation_code': 'This field is required and may not be blank'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+       
+        if not is_valid_uuid(request.data['confirmation_code']):
+            response = {'confirmation_code': 'Incorrect confirmation code'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        code = ConfirmationCode.objects.filter(code=request.data['confirmation_code'], car_number=request.data['number']).order_by('-created_at').first()
+        if (not code or code.is_used):
+            response = {'confirmation_code': 'Incorrect confirmation code'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+        car = Car(owner=request.user, **validated_data)
+        car.save()
+        code.used = True
+        code.save()
+        return Response(validated_data, status=status.HTTP_201_CREATED)
+
+def is_valid_uuid(value):
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
 
 class PriceViewSet(NonReadableViewSet):
 
@@ -88,10 +121,37 @@ class ParkCreate(views.APIView):
         return Response(validated_data, status=status.HTTP_201_CREATED)
 
 
-class ParkingRecordViewSet(CreateOnlyViewSet):
+class ParkingRecordViewSet(views.APIView):
 
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ParkingInfoCreateSerializer
+
+    def post(self, request):
+        data = request.data
+        errors = {}
+        if ('park' not in request.data):
+            errors['park'] = 'This field is required'
+        if ('car' not in request.data):
+            errors['car'] = 'This field is required'
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        car = request.data['car']
+        stored_car = Car.objects.filter(number = car)
+        
+        if not stored_car:
+            data = data.copy()
+            data.pop('car')
+            data['unregistred_car_number'] = car
+
+        
+        serializer = ParkingInfoCreateSerializer(data = data)
+        
+        if (serializer.is_valid()):
+            model = serializer.save()
+            json = ParkingInfoCreateSerializer(model)        
+            return Response(json.data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ParkingRecordCheckout(views.APIView):
@@ -101,7 +161,7 @@ class ParkingRecordCheckout(views.APIView):
     def post(self, request):
         errors = {}
         if ('park' not in request.data):
-            errors['description'] = 'This field is required'
+            errors['park'] = 'This field is required'
         if ('car' not in request.data):
             errors['car'] = 'This field is required'
         if errors:
@@ -112,6 +172,8 @@ class ParkingRecordCheckout(views.APIView):
         parking_record = ParkingInfo.objects.filter(
             park_id=park, car_id=car, checkout_time_utc=None).first()
         if not parking_record:
+            parking_record = ParkingInfo.objects.filter(park_id=park, unregistred_car_number=car, checkout_time_utc=None).first()
+        if not parking_record:
             return Response({'errors': f'entry parking record for car:{car} park:{park} not found'}, status=status.HTTP_400_BAD_REQUEST)
 
         parking_record.checkout_time_utc = datetime.now(pytz.timezone('UTC'))
@@ -119,6 +181,6 @@ class ParkingRecordCheckout(views.APIView):
             parking_record)
 
         parking_record.save()
-        json = ParkingInfoCreateSerializer(parking_record)
+        json = ParkingInfoCheckoutSerializer(parking_record)
 
         return Response(json.data, status=status.HTTP_200_OK)

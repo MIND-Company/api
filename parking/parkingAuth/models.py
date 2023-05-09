@@ -22,3 +22,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = 'phone'
     EMAIL_FIELD = 'email'
+
+    def __str__(self) -> str:
+        return super().__str__()

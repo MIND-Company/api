@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from parkingAuth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator, MinLengthValidator
@@ -59,10 +60,17 @@ class ParkingInfo(models.Model):
     calculated_price = models.DecimalField(
         max_digits=9, decimal_places=2, validators=[MinValueValidator(0)], null=True, blank=True)
     park = models.ForeignKey(Park, on_delete=models.SET(0))
-    car = models.ForeignKey(Car, on_delete=models.CASCADE)
+    car = models.ForeignKey(Car, on_delete=models.CASCADE, null=True)
+    unregistred_car_number = models.CharField(max_length=9, null=True)
 
     def __str__(self):
         return f'park: {self.park}, car: {self.car}'
+    
+class ConfirmationCode(models.Model):
+    code = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    car_number = models.CharField(max_length=9)
+    created_at = models.DateTimeField(auto_now_add=True)
+    used = models.BooleanField(default=False)
 
 
 class Price(models.Model):

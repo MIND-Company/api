@@ -1,7 +1,7 @@
 from rest_framework import serializers, validators
 from action_serializer import ModelActionSerializer
 from .auxiliary_serializers import AuxParkingSerializer, AuxParkSerializer, AuxDateTimeSerializer
-from .models import Park, ParkingInfo, Car, Price
+from .models import Park, ParkingInfo, Car, Price, ConfirmationCode
 import pytz
 from . import functions
 from datetime import datetime
@@ -134,8 +134,16 @@ class ParkingInfoCreateSerializer(ModelActionSerializer):
 
     def validate_car(self, car):
         infos = ParkingInfo.objects.filter(car=car, checkout_time_utc=None)
+
         if len(infos) > 0:
             raise serializers.ValidationError(f'Машина с номером {car.number} уже находится на парковке')
+        return car
+    
+    def validate_unregistred_car_number(self, car):
+        infos = ParkingInfo.objects.filter(unregistred_car_number=car, checkout_time_utc=None)
+
+        if len(infos) > 0:
+            raise serializers.ValidationError(f'Машина с номером {car} уже находится на парковке')
         return car
 
     def save(self, **kwargs):
@@ -148,5 +156,58 @@ class ParkingInfoCreateSerializer(ModelActionSerializer):
 
     class Meta:
         model = ParkingInfo
-        fields = ['car', 'park', 'entry_time_local', 'entry_time_utc', 'checkout_time_local', 'checkout_time_utc']
+        fields = ['car', 'unregistred_car_number', 'park', 'entry_time_local', 'entry_time_utc', 'checkout_time_local', 'checkout_time_utc']
+        read_only_fields = ['entry_time_utc']
+
+class ParkingInfoCheckoutSerializer(ModelActionSerializer):
+
+    entry_time_local = serializers.SerializerMethodField('get_local_entry_time')
+    checkout_time_local = serializers.SerializerMethodField('get_local_checkout_time')
+    confirmation_code = serializers.SerializerMethodField('create_confirmation_code')
+
+    def get_local_entry_time(self, obj):
+        timezone = pytz.timezone(obj.timezone)
+        time = obj.entry_time_utc.astimezone(timezone)
+        return time
+
+    def get_local_checkout_time(self, obj):
+        if not obj.checkout_time_utc:
+            return None
+        timezone = pytz.timezone(obj.timezone)
+        time = obj.checkout_time_utc.astimezone(timezone)
+        return time
+
+    def validate_car(self, car):
+        infos = ParkingInfo.objects.filter(car=car, checkout_time_utc=None)
+
+        if len(infos) > 0:
+            raise serializers.ValidationError(f'Машина с номером {car.number} уже находится на парковке')
+        return car
+    
+    def validate_unregistred_car_number(self, car):
+        infos = ParkingInfo.objects.filter(unregistred_car_number=car, checkout_time_utc=None)
+
+        if len(infos) > 0:
+            raise serializers.ValidationError(f'Машина с номером {car} уже находится на парковке')
+        return car
+    
+    def create_confirmation_code(self, car):
+        code = ""
+        registred_car = Car.objects.filter(number = car)
+        if not registred_car:
+            code = ConfirmationCode(car_number = car.unregistred_car_number)
+            code.save()
+        return code.code
+
+    def save(self, **kwargs):
+        kwargs['entry_time_utc'] = datetime.now(pytz.timezone('UTC'))
+        tf = TimezoneFinder()
+        park = self.validated_data['park']
+        timezone = tf.timezone_at(lng=park.longitude, lat=park.latitude)
+        kwargs['timezone'] = timezone
+        return super().save(**kwargs)
+
+    class Meta:
+        model = ParkingInfo
+        fields = ['car', 'unregistred_car_number', 'park', 'entry_time_local', 'entry_time_utc', 'checkout_time_local', 'checkout_time_utc', 'confirmation_code']
         read_only_fields = ['entry_time_utc']
