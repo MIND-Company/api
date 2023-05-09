@@ -71,7 +71,7 @@ class CarCreateView(views.APIView):
             response = {'confirmation_code': 'Incorrect confirmation code'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
         code = ConfirmationCode.objects.filter(code=request.data['confirmation_code'], car_number=request.data['number']).order_by('-created_at').first()
-        if (not code or code.is_used):
+        if (not code or code.used):
             response = {'confirmation_code': 'Incorrect confirmation code'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
