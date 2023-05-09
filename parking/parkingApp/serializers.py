@@ -85,7 +85,7 @@ class CarSerializer(ModelActionSerializer):
 
     class Meta:
         model = Car
-        fields = ['number', 'brand', 'model', 'color']
+        fields = ['number']
 
 
 class ParkingInfoSerializer(ModelActionSerializer):

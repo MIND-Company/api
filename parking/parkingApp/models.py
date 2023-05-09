@@ -26,9 +26,6 @@ class DayOfWeek:
 
 class Car(models.Model):
     number = models.CharField(max_length=9, primary_key=True)
-    brand = models.CharField(max_length=100)
-    model = models.CharField(max_length=100)
-    color = models.CharField(max_length=100)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def __str__(self) -> str:
