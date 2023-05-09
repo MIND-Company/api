@@ -144,7 +144,7 @@ ___
 ## CRUD для машины
 GET /api/cars - отдает список машин пользователя
 
-POST :bangbang: ~~/api/cars~~ /api/add_car/ - создает новую машину для пользователя 
+POST :bangbang: ~~/api/cars~~ /api/add-car/ - создает новую машину для пользователя 
 теперь обязательным является код подтверждения
 
 ![изображение](https://user-images.githubusercontent.com/82332119/237043046-c4293b37-379d-40fa-a0df-4186db093769.png)
