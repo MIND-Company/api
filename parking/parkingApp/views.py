@@ -2,7 +2,7 @@ from rest_framework import viewsets, permissions, views, status
 from rest_framework.response import Response
 from .serializers import OwnerParkSerializer, ParkingInfoSerializer, CarSerializer, PriceSerializer, ParkingInfoCreateSerializer, ParkSerializer, ParkingInfoCheckoutSerializer
 from .models import Park, ParkingInfo, Car, Price, ConfirmationCode
-from .castom_viewsets import NonReadableViewSet, CreateOnlyViewSet
+from .castom_viewsets import NonReadableViewSet, CreateOnlyViewSet, NonCreatableViewSet
 from datetime import datetime
 import pytz
 from . import functions
@@ -42,7 +42,7 @@ class ParkingInfoViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
-class CarViewSet(viewsets.ReadOnlyModelViewSet):
+class CarViewSet(NonCreatableViewSet):
 
     def get_queryset(self):
         user = self.request.user
