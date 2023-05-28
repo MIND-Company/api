@@ -123,7 +123,7 @@ class ParkCreate(views.APIView):
 
 class ParkingRecordViewSet(views.APIView):
 
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         data = request.data
@@ -156,7 +156,7 @@ class ParkingRecordViewSet(views.APIView):
 
 class ParkingRecordCheckout(views.APIView):
 
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         errors = {}
